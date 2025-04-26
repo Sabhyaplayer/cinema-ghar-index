@@ -3,18 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shaka Player - Video Player</title>
-
-    <!-- Shaka Player UI CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.4/controls.min.css" integrity="sha512-AT0br9jZMA06F1Nf6jQ0YDj6EP9v8bF4/8cZ0MRUQlG+8Fkx376q/rcaENPXMWuG3hYy0fF4jPZrcW/pC27JcQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <!-- Shaka Player library -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.4/shaka-player.ui.js" integrity="sha512-6oPQBmvNAjmYA+xOFjYILirwHBtcgkBchI6lQyL1C850L67/04N+3QLVwFwY0zNVHqzhTzqi8rQSFhDmTfUbIQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+    <title>LG TV MKV Player Test</title>
     <style>
         body {
             font-family: sans-serif;
-            background-color: #f4f4f4;
+            background-color: #222;
+            color: #eee;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -22,21 +16,12 @@
             align-items: center;
         }
         .container {
-            background-color: #fff;
+            background-color: #333;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             width: 90%;
             max-width: 800px;
             margin-bottom: 20px;
-        }
-        #videoContainer {
-            width: 100%;
-            margin-top: 15px;
-            background-color: #000; /* Black background for video area */
-        }
-        #videoElement {
-            width: 100%;
         }
         .input-group {
             display: flex;
@@ -46,7 +31,9 @@
         .input-group input[type="text"] {
             flex-grow: 1;
             padding: 8px;
-            border: 1px solid #ccc;
+            border: 1px solid #555;
+            background-color: #444;
+            color: #eee;
             border-radius: 4px;
         }
         .input-group button {
@@ -60,6 +47,15 @@
         .input-group button:hover {
             background-color: #0056b3;
         }
+        #videoContainer {
+            width: 100%;
+            margin-top: 15px;
+            background-color: #000;
+        }
+        #videoElement {
+            width: 100%;
+            display: block; /* Prevents extra space below video */
+        }
         .controls-group {
             margin-top: 15px;
         }
@@ -70,196 +66,221 @@
         .controls-group select {
             padding: 5px;
             border-radius: 4px;
+            background-color: #444;
+            color: #eee;
+            border: 1px solid #555;
         }
         #status {
             margin-top: 10px;
-            color: red;
+            color: #ffcc00; /* Yellow for status/errors */
             font-weight: bold;
+            min-height: 1.2em;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Shaka Player Video Player</h1>
+        <h1>LG TV MKV Player Test</h1>
 
         <div class="input-group">
-            <input type="text" id="videoUrlInput" placeholder="Enter Video URL (DASH or HLS)">
+            <input type="text" id="videoUrlInput" placeholder="Enter MKV Video URL">
             <button id="loadButton">Load Video</button>
         </div>
 
         <div class="controls-group">
             <label for="audioTracksSelect">Audio Track:</label>
             <select id="audioTracksSelect" disabled>
-                <option value="">-- Select Audio --</option>
+                <option value="">-- No Tracks Detected --</option>
             </select>
         </div>
 
-        <div id="status"></div>
+        <div id="status">Enter a URL and click Load.</div>
 
-        <!-- Shaka Player needs a container and a video element -->
-        <div id="videoContainer" data-shaka-player-container data-shaka-player-cast-receiver-id="YOUR_CAST_RECEIVER_APP_ID_HERE">
-            <video id="videoElement"
-                   poster="//shaka-player-demo.appspot.com/assets/poster.jpg"
-                   data-shaka-player
-                   ></video>
-                   <!-- Note: 'controls' attribute is often managed by the UI library -->
+        <div id="videoContainer">
+            <!-- Use standard controls, hoping LG's browser enhances them -->
+            <video id="videoElement" controls width="100%">
+                Your browser does not support the video tag.
+            </video>
         </div>
     </div>
 
     <script>
         const videoElement = document.getElementById('videoElement');
-        const videoContainer = document.getElementById('videoContainer');
         const videoUrlInput = document.getElementById('videoUrlInput');
         const loadButton = document.getElementById('loadButton');
         const audioTracksSelect = document.getElementById('audioTracksSelect');
         const statusDiv = document.getElementById('status');
 
-        let player = null;
-        let ui = null;
+        function initPlayer() {
+            // Event listener when the video metadata is loaded
+            videoElement.addEventListener('loadedmetadata', handleTracks);
 
-        function initApp() {
-            statusDiv.textContent = ''; // Clear status on init
-            // Install built-in polyfills to patch browser incompatibilities.
-            shaka.polyfill.installAll();
+            // Event listener for general errors
+            videoElement.addEventListener('error', handleError);
 
-            // Check to see if the browser supports the basic APIs Shaka needs.
-            if (!shaka.Player.isBrowserSupported()) {
-                showError('Browser not supported!');
-                console.error('Browser not supported!');
-                return;
-            }
-
-            // Initialize the Shaka Player instance
-            player = new shaka.Player(videoElement);
-
-            // Configure the Shaka Player UI
-            ui = new shaka.ui.Overlay(player, videoContainer, videoElement);
-
-            // Configure UI elements (optional, includes built-in audio selector)
-            // You might see two audio selectors (one built-in, one custom)
-            const config = {
-                 'controlPanelElements': [
-                    'play_pause', 'time_and_duration', 'spacer',
-                    'volume', 'mute', 'fullscreen', 'overflow_menu'
-                 ],
-                 'overflowMenuButtons': [
-                     'cast', 'quality', 'language', 'picture_in_picture', 'playback_rate'
-                 ],
-                 // Example: Add the built-in audio language selector to the main controls
-                 // 'controlPanelElements': ['play_pause', 'time_and_duration', 'audio_language', 'spacer', 'volume', 'mute', 'fullscreen'],
-            };
-            ui.configure(config);
-
-
-            // Add error listener
-            player.addEventListener('error', onErrorEvent);
-            // Add listener for track changes to update our custom dropdown
-            player.addEventListener('trackschanged', onTracksChanged);
-
-            // Add listener for the load button
+            // Listener for the load button
             loadButton.addEventListener('click', loadVideo);
 
-            // Add listener for the custom audio track dropdown
+            // Listener for the custom audio track dropdown
             audioTracksSelect.addEventListener('change', changeAudioTrack);
 
-            console.log('Shaka Player initialized.');
+            // Pre-fill URL if desired (easier testing)
+            // videoUrlInput.value = "YOUR_MKV_URL_HERE";
         }
 
         function loadVideo() {
             const url = videoUrlInput.value.trim();
             if (!url) {
-                showError("Please enter a video URL.");
+                updateStatus("Please enter a video URL.", true);
                 return;
             }
-            statusDiv.textContent = 'Loading...';
+            updateStatus("Loading video...");
             resetAudioSelector();
-
-            // Try to load the manifest.
-            player.load(url)
-                .then(() => {
-                    console.log(`Video loaded successfully: ${url}`);
-                    statusDiv.textContent = ''; // Clear status on success
-                    // `onTracksChanged` will be called automatically after load
-                })
-                .catch(onError); // onError needs to be defined below.
+            videoElement.src = url;
+            videoElement.load(); // Explicitly call load
+            // videoElement.play(); // Optionally start playing automatically
         }
 
-        function onTracksChanged() {
-            console.log('Tracks changed event triggered.');
+        function handleTracks() {
+            updateStatus("Video metadata loaded. Checking tracks...");
+            console.log("loadedmetadata event fired.");
             populateAudioSelector();
+            // Optional: Check if video actually started playing or needs interaction
+            if (videoElement.paused && videoElement.readyState >= 3) { // HAVE_FUTURE_DATA
+                 updateStatus("Video ready. Press play.");
+            } else if (!videoElement.paused) {
+                 updateStatus("Video playing.");
+            }
         }
 
         function populateAudioSelector() {
             resetAudioSelector(); // Clear previous options
 
-            if (!player) return;
+            // Access the standard HTML5 AudioTrackList
+            const tracks = videoElement.audioTracks;
+            console.log("Detected Audio Tracks:", tracks); // Check console on TV if possible!
 
-            // Get available audio languages and roles
-            const audioLanguagesAndRoles = player.getAudioLanguagesAndRoles();
-            console.log('Available audio languages/roles:', audioLanguagesAndRoles);
-
-            if (audioLanguagesAndRoles.length <= 1) {
-                audioTracksSelect.disabled = true; // Disable if 0 or 1 track
+            if (!tracks || tracks.length <= 1) {
+                audioTracksSelect.disabled = true;
+                const reason = (!tracks || tracks.length === 0) ? "No tracks detected." : "Only one track detected.";
+                updateStatus(reason);
+                if (tracks && tracks.length === 1) {
+                    const option = document.createElement('option');
+                    option.value = tracks[0].id || tracks[0].language || 'track_0'; // Use ID or language if available
+                    option.textContent = tracks[0].label || `Track 1 (${tracks[0].language || 'unknown'})`;
+                    audioTracksSelect.appendChild(option);
+                }
                 return;
             }
 
-            const activeAudioTrack = player.getVariantTracks().find(track => track.active && track.type === 'audio');
-            const currentLang = activeAudioTrack ? activeAudioTrack.language : player.getConfiguration().preferredAudioLanguage; // Get current language
-
-            audioLanguagesAndRoles.forEach(langRole => {
+            let foundEnabled = false;
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
                 const option = document.createElement('option');
-                option.value = langRole.language;
-                // Create a user-friendly label (e.g., "English (main)", "Spanish")
-                option.textContent = `${shaka.ui.LanguageUtils.getLanguageName(langRole.language)}` + (langRole.role ? ` (${langRole.role})` : '');
-                option.selected = (langRole.language === currentLang); // Select the currently active one
+                option.value = track.id || `track_${i}`; // Use ID if available, otherwise generate one
+                option.textContent = track.label || `Track ${i + 1} (${track.language || 'unknown'})`;
+                option.selected = track.enabled; // Check which track is currently active
+                if(track.enabled) foundEnabled = true;
                 audioTracksSelect.appendChild(option);
-            });
+                console.log(`Track ${i}: ID=${track.id}, Label=${track.label}, Language=${track.language}, Enabled=${track.enabled}`);
+            }
+
+            // If no track was marked as enabled by default, select the first one
+            if (!foundEnabled && audioTracksSelect.options.length > 1) {
+                 audioTracksSelect.selectedIndex = 1; // Select the first actual track
+                 tracks[0].enabled = true; // Try enabling the first track
+            }
 
             audioTracksSelect.disabled = false;
+            updateStatus(`Multiple audio tracks found (${tracks.length}).`);
         }
 
         function changeAudioTrack() {
-            if (!player) return;
+            const selectedValue = audioTracksSelect.value;
+            const tracks = videoElement.audioTracks;
 
-            const selectedLanguage = audioTracksSelect.value;
-            if (selectedLanguage) {
-                console.log(`Changing audio language to: ${selectedLanguage}`);
-                player.selectAudioLanguage(selectedLanguage);
-                // Note: If roles are important, you might need more complex logic using selectVariantsByAudioRole
+            if (!tracks) return;
+
+            console.log(`Attempting to switch to track value: ${selectedValue}`);
+
+            let trackChanged = false;
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                const trackIdentifier = track.id || `track_${i}`;
+                // Enable the selected track, disable others
+                const shouldBeEnabled = (trackIdentifier === selectedValue);
+                if (track.enabled !== shouldBeEnabled) {
+                    track.enabled = shouldBeEnabled;
+                    console.log(`Set track ${i} (ID: ${track.id}, Lang: ${track.language}) enabled state to: ${shouldBeEnabled}`);
+                    if (shouldBeEnabled) trackChanged = true;
+                }
             }
+             if (trackChanged) {
+                 updateStatus(`Switched audio track.`);
+             } else {
+                 updateStatus(`Could not switch track or track already active.`);
+             }
         }
 
         function resetAudioSelector() {
-             // Clear existing options except the placeholder
+            // Clear existing options except the placeholder
             while (audioTracksSelect.options.length > 1) {
                 audioTracksSelect.remove(1);
             }
+             // Ensure the placeholder is correct
+             if (audioTracksSelect.options.length === 0) {
+                 const placeholder = document.createElement('option');
+                 placeholder.value = "";
+                 placeholder.textContent = "-- No Tracks Detected --";
+                 audioTracksSelect.appendChild(placeholder);
+             } else {
+                 audioTracksSelect.options[0].textContent = "-- No Tracks Detected --";
+             }
+
             audioTracksSelect.selectedIndex = 0; // Reset to placeholder
             audioTracksSelect.disabled = true;
         }
 
-        // Error handling functions
-        function onErrorEvent(event) {
-            // Extract the shaka.util.Error object from the event.
-            onError(event.detail);
+        function handleError(e) {
+            let errorMsg = "An unknown video error occurred.";
+            if (videoElement.error) {
+                switch (videoElement.error.code) {
+                    case MediaError.MEDIA_ERR_ABORTED:
+                        errorMsg = 'Video playback aborted.';
+                        break;
+                    case MediaError.MEDIA_ERR_NETWORK:
+                        errorMsg = 'A network error caused the video download to fail.';
+                        break;
+                    case MediaError.MEDIA_ERR_DECODE:
+                        errorMsg = 'Video playback aborted due to decoding error (codec unsupported?).';
+                        break;
+                    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                        errorMsg = 'Video source not supported (MKV/codec issue likely).';
+                        break;
+                    default:
+                        errorMsg = 'An unknown error occurred.';
+                }
+            }
+            // Also check event target for more details if available
+            if (e && e.target && e.target.error) {
+                 console.error('Video Error Details:', e.target.error);
+            } else {
+                 console.error('Video Error Event:', e);
+            }
+
+            updateStatus(`Error: ${errorMsg}`, true);
+            resetAudioSelector();
         }
 
-        function onError(error) {
-            // Log the error.
-            console.error('Shaka Player Error:', error.code, 'Object', error);
-            showError(`Error: ${error.message} (Code: ${error.code})`);
-            resetAudioSelector(); // Reset dropdown on error
-        }
-
-        function showError(message) {
+        function updateStatus(message, isError = false) {
             statusDiv.textContent = message;
+            statusDiv.style.color = isError ? '#ff4444' : '#ffcc00'; // Red for errors, yellow for status
+            console.log(`Status update: ${message}`);
         }
 
-        // Wait for the DOM to load and Shaka Player UI to be ready
-        document.addEventListener('shaka-ui-loaded', initApp);
-        // Fallback if shaka-ui-loaded isn't fired (e.g., deferred script)
-        // document.addEventListener('DOMContentLoaded', initApp); // Use this if 'shaka-ui-loaded' doesn't work reliably
+        // Initialize when the page loads
+        document.addEventListener('DOMContentLoaded', initPlayer);
 
     </script>
 
