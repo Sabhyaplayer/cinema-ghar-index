@@ -3,230 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Make title dynamic based on shared item later -->
-    <title>Cinema Ghar Index</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Product+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Note: Product Sans is not a standard Google Font, using Poppins as primary, with Product Sans as fallback -->
-    <link rel="stylesheet" href="style.css">
+    <title>Shaka Player - Video Player</title>
+
+    <!-- Shaka Player UI CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.4/controls.min.css" integrity="sha512-AT0br9jZMA06F1Nf6jQ0YDj6EP9v8bF4/8cZ0MRUQlG+8Fkx376q/rcaENPXMWuG3hYy0fF4jPZrcW/pC27JcQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Shaka Player library -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.4/shaka-player.ui.js" integrity="sha512-6oPQBmvNAjmYA+xOFjYILirwHBtcgkBchI6lQyL1C850L67/04N+3QLVwFwY0zNVHqzhTzqi8rQSFhDmTfUbIQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+        #videoContainer {
+            width: 100%;
+            margin-top: 15px;
+            background-color: #000; /* Black background for video area */
+        }
+        #videoElement {
+            width: 100%;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .input-group input[type="text"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .input-group button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .input-group button:hover {
+            background-color: #0056b3;
+        }
+        .controls-group {
+            margin-top: 15px;
+        }
+        .controls-group label {
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        .controls-group select {
+            padding: 5px;
+            border-radius: 4px;
+        }
+        #status {
+            margin-top: 10px;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<!-- Main Container: Holds everything, controls background/shadow -->
-<div id="cinemaghar-container">
 
-  <!-- Page Loader: Shown initially, hidden by JS after load -->
-  <div id="page-loader">
-      <div class="spinner-container" role="status" aria-live="polite">
-          <div class="spinner"></div>
-          <span>Loading Cinema Ghar Index...</span>
-      </div>
-  </div>
+    <div class="container">
+        <h1>Shaka Player Video Player</h1>
 
-  <!-- Search Focus Area: Centered initially, moves top when results show -->
-  <div id="search-focus-area" style="display: flex;"> <!-- Ensure default display is set -->
-      <!-- Simplified Title -->
-      <h1 class="simple-title" onclick="resetToHomepage()">
-          Cinema Ghar Index
-      </h1>
-      <!-- Right-aligned Signature -->
-      <p class="signature">Curated with ❣️ by The_SabhyaPlayer</p>
+        <div class="input-group">
+            <input type="text" id="videoUrlInput" placeholder="Enter Video URL (DASH or HLS)">
+            <button id="loadButton">Load Video</button>
+        </div>
 
-      <!-- Search Input -->
-      <div class="search-input-wrapper">
-          <input type="search" id="mainSearchInput" placeholder="Search your movie, series, or file" autocomplete="off" aria-label="Search for movies, series, or files"/>
-          <div id="searchInputSuggestions"></div>
-          <button class="button" id="searchSubmitButton" onclick="handleSearchSubmit()">Search</button>
-      </div>
-      <!-- Optional buttons -->
-      <div class="search-actions">
-           <!-- Buttons here if needed -->
-      </div>
-      <!-- Updates Preview Section (only shown on homepage) -->
-      <div id="updates-preview-section" style="display: none;">
-          <h3>Recently Added</h3>
-          <div id="updates-preview-list">
-              <!-- JS Populates: Initial spinner -> items or 'No updates' message -->
-              <div class="loading-inline-spinner" role="status" aria-live="polite">
-                  <div class="spinner"></div>
-                  <span>Loading updates...</span>
-              </div>
-          </div>
-          <button id="showMoreUpdatesButton" style="display: none;" onclick="appendMoreUpdates()">Show More</button>
-      </div>
-  </div> <!-- End #search-focus-area -->
+        <div class="controls-group">
+            <label for="audioTracksSelect">Audio Track:</label>
+            <select id="audioTracksSelect" disabled>
+                <option value="">-- Select Audio --</option>
+            </select>
+        </div>
 
-  <!-- Results Area: Hidden initially, displayed below search when active -->
-  <main id="results-area">
-      <!-- MODIFICATION: Added Back Button specific to Results View -->
-      <button id="backToHomeButtonResults" class="button back-button" onclick="resetToHomepage()">
-          &larr; Back to Home
-      </button>
+        <div id="status"></div>
 
-      <!-- Filter Area within Results -->
-      <div class="results-filter-area">
-          <div class="filter-group">
-              <label for="mainQualityFilterSelect">Filter by Quality:</label>
-              <select id="mainQualityFilterSelect">
-                  <option value="">All Qualities</option>
-                  <!-- Options populated by JS -->
-              </select>
-          </div>
-          <!-- Add more filters here if needed -->
-      </div>
+        <!-- Shaka Player needs a container and a video element -->
+        <div id="videoContainer" data-shaka-player-container data-shaka-player-cast-receiver-id="YOUR_CAST_RECEIVER_APP_ID_HERE">
+            <video id="videoElement"
+                   poster="//shaka-player-demo.appspot.com/assets/poster.jpg"
+                   data-shaka-player
+                   ></video>
+                   <!-- Note: 'controls' attribute is often managed by the UI library -->
+        </div>
+    </div>
 
-      <!-- Tab Navigation -->
-      <nav class="tab-navigation">
-          <button class="tab-button active" id="allFilesTabButton" onclick="switchTab('allFiles')">All Files</button>
-          <button class="tab-button" id="moviesTabButton" onclick="switchTab('movies')">Movies</button>
-          <button class="tab-button" id="seriesTabButton" onclick="switchTab('series')">Series</button>
-      </nav>
+    <script>
+        const videoElement = document.getElementById('videoElement');
+        const videoContainer = document.getElementById('videoContainer');
+        const videoUrlInput = document.getElementById('videoUrlInput');
+        const loadButton = document.getElementById('loadButton');
+        const audioTracksSelect = document.getElementById('audioTracksSelect');
+        const statusDiv = document.getElementById('status');
 
-      <!-- Tab Content Area -->
-      <div class="tab-content">
-          <!-- All Files Panel -->
-          <div id="allFilesTabPanel" class="active">
-              <div class="table-container">
-                  <table id="allFilesTable">
-                      <thead>
-                          <tr>
-                              <th class="sortable col-id" data-sort-key="id">#<span class="sort-indicator"></span></th>
-                              <th class="sortable col-filename" data-sort-key="filename">Filename<span class="sort-indicator"></span></th>
-                              <th class="sortable col-size" data-sort-key="size">Size<span class="sort-indicator"></span></th>
-                              <th class="sortable col-quality" data-sort-key="quality">Quality<span class="sort-indicator"></span></th>
-                              <th class="sortable col-updated" data-sort-key="lastUpdated">Updated<span class="sort-indicator"></span></th>
-                              <th class="col-view">View</th>
-                          </tr>
-                      </thead>
-                      <tbody id="allFilesTableBody">
-                         <!-- JS renders initial message here -->
-                         <tr><td colspan="6" class="status-message">Enter search term above.</td></tr>
-                      </tbody>
-                  </table>
-              </div>
-              <div class="pagination-container" id="allFilesPaginationControls" style="display: none;"></div>
-          </div>
+        let player = null;
+        let ui = null;
 
-           <!-- Movies Panel -->
-          <div id="moviesTabPanel">
-              <div class="table-container">
-                  <table id="moviesTable">
-                      <thead>
-                          <tr>
-                              <th class="sortable col-id" data-sort-key="id">#<span class="sort-indicator"></span></th>
-                              <th class="sortable col-filename" data-sort-key="filename">Filename<span class="sort-indicator"></span></th>
-                              <th class="sortable col-size" data-sort-key="size">Size<span class="sort-indicator"></span></th>
-                              <th class="sortable col-quality" data-sort-key="quality">Quality<span class="sort-indicator"></span></th>
-                              <th class="sortable col-updated" data-sort-key="lastUpdated">Updated<span class="sort-indicator"></span></th>
-                              <th class="col-view">View</th>
-                          </tr>
-                      </thead>
-                      <tbody id="moviesTableBody"></tbody>
-                  </table>
-              </div>
-              <div class="pagination-container" id="moviesPaginationControls" style="display: none;"></div>
-          </div>
+        function initApp() {
+            statusDiv.textContent = ''; // Clear status on init
+            // Install built-in polyfills to patch browser incompatibilities.
+            shaka.polyfill.installAll();
 
-           <!-- Series Panel -->
-          <div id="seriesTabPanel">
-              <div class="table-container">
-                  <table id="seriesTable">
-                       <thead>
-                          <tr>
-                              <th class="sortable col-id" data-sort-key="id">#<span class="sort-indicator"></span></th>
-                              <th class="sortable col-filename" data-sort-key="filename">Filename<span class="sort-indicator"></span></th>
-                              <th class="sortable col-size" data-sort-key="size">Size<span class="sort-indicator"></span></th>
-                              <th class="sortable col-quality" data-sort-key="quality">Quality<span class="sort-indicator"></span></th>
-                              <th class="sortable col-updated" data-sort-key="lastUpdated">Updated<span class="sort-indicator"></span></th>
-                              <th class="col-view">View</th>
-                          </tr>
-                      </thead>
-                      <tbody id="seriesTableBody"></tbody>
-                  </table>
-              </div>
-              <div class="pagination-container" id="seriesPaginationControls" style="display: none;"></div>
-          </div>
-      </div> <!-- End .tab-content -->
-  </main> <!-- End #results-area -->
+            // Check to see if the browser supports the basic APIs Shaka needs.
+            if (!shaka.Player.isBrowserSupported()) {
+                showError('Browser not supported!');
+                console.error('Browser not supported!');
+                return;
+            }
 
-  <!-- Shared Item View Area (Hidden initially) -->
-  <main id="shared-item-view">
-      <button id="backToHomeButtonShared" class="button back-button" onclick="resetToHomepage()">
-          &larr; Back to Home
-      </button>
-      <div id="shared-item-content">
-          <!-- JS populates this with shared item details or error message -->
-          <div class="loading-inline-spinner" role="status" aria-live="polite">
-              <div class="spinner"></div>
-              <span>Loading shared item...</span>
-          </div>
-      </div>
-       <!-- Video player will be moved inside shared-item-content when playing from share view -->
-  </main> <!-- End #shared-item-view -->
+            // Initialize the Shaka Player instance
+            player = new shaka.Player(videoElement);
+
+            // Configure the Shaka Player UI
+            ui = new shaka.ui.Overlay(player, videoContainer, videoElement);
+
+            // Configure UI elements (optional, includes built-in audio selector)
+            // You might see two audio selectors (one built-in, one custom)
+            const config = {
+                 'controlPanelElements': [
+                    'play_pause', 'time_and_duration', 'spacer',
+                    'volume', 'mute', 'fullscreen', 'overflow_menu'
+                 ],
+                 'overflowMenuButtons': [
+                     'cast', 'quality', 'language', 'picture_in_picture', 'playback_rate'
+                 ],
+                 // Example: Add the built-in audio language selector to the main controls
+                 // 'controlPanelElements': ['play_pause', 'time_and_duration', 'audio_language', 'spacer', 'volume', 'mute', 'fullscreen'],
+            };
+            ui.configure(config);
 
 
-  <!-- Video Player Container - Initially hidden, moved dynamically by JS -->
-  <div class="video-container" id="videoContainer" style="display: none;">
-      <button class="close-btn" onclick="closePlayer(event)" aria-label="Close video player">✖ Close</button>
-      <div id="audioWarning" style="display: none;"></div>
-      <div id="videoTitle"></div>
-      <video id="html5VideoPlayer" controls autoplay controlsList="nodownload noremoteplayback">
-          Your browser does not support the video tag.
-      </video>
-      <div class="custom-controls" id="customControlsContainer">
-          <button class="button" onclick="seekVideo(-10)">« 10s</button>
-          <button class="button" onclick="seekVideo(10)">10s »</button>
-          <button class="button" id="muteButton" onclick="toggleMute()" aria-pressed="false">Mute</button>
-          <div class="player-control-group">
-              <label for="volumeSlider">Vol:</label>
-              <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)" onchange="setVolume(this.value)" aria-label="Volume control">
-          </div>
-          <select id="audioTrackSelect" onchange="changeAudioTrack(this)" title="Select Audio Track" style="display: none;" aria-label="Select audio track"></select>
-          <div class="player-control-group">
-             <label for="playbackSpeedSelect">Speed:</label>
-             <select id="playbackSpeedSelect" onchange="setPlaybackSpeed(this.value)" aria-label="Select playback speed">
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1" selected>1x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="2">2x</option>
-             </select>
-          </div>
-          <button class="button" onclick="toggleFullscreen()">Fullscreen</button>
-      </div>
-      <div class="vlc-copy-box" id="vlcBox" style="display:none;">
-          <strong>External Player URL:</strong>
-          <code id="vlcText"></code>
-          <!-- Feedback span INSIDE vlcBox - Now uses shared class -->
-          <span class="copy-feedback" role="status" aria-live="polite">Copied!</span>
-      </div>
-  </div> <!-- End #videoContainer -->
+            // Add error listener
+            player.addEventListener('error', onErrorEvent);
+            // Add listener for track changes to update our custom dropdown
+            player.addEventListener('trackschanged', onTracksChanged);
 
-   <!-- Footer Section -->
-  <footer id="page-footer" style="display: flex;"> <!-- Ensure default display is set -->
-      <div class="footer-buttons">
-          <a href="https://t.me/The_Sabhyaplayer_bot" target="_blank" rel="noopener noreferrer" class="button telegram-button">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
-                  <path d="M97.9,161.4l-2.8,29.9c3.4,0,4.9-1.7,6.8-3.6l14.1-13.6l29.4,21.7c5.4,3.1,9.3,1.5,10.8-4.9l19.9-93.5c1.8-7.8-2.4-11.5-7.5-9.3L36.4,127.1c-7.6,3-7.6,7.5-1.3,9.6l30.2,9.4l70.4-44.3c3.3-2,6.1-0.9,3.6,1.4L97.9,161.4z"/>
-              </svg>
-              <span>Contact The_Sabhyaplayer</span>
-          </a>
-          <a href="https://t.me/Cinemaghar_Lobby" target="_blank" rel="noopener noreferrer" class="button telegram-button">
-               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
-                   <path d="M97.9,161.4l-2.8,29.9c3.4,0,4.9-1.7,6.8-3.6l14.1-13.6l29.4,21.7c5.4,3.1,9.3,1.5,10.8-4.9l19.9-93.5c1.8-7.8-2.4-11.5-7.5-9.3L36.4,127.1c-7.6,3-7.6,7.5-1.3,9.6l30.2,9.4l70.4-44.3c3.3-2,6.1-0.9,3.6,1.4L97.9,161.4z"/>
-               </svg>
-              <span>Join Telegram Channel</span>
-          </a>
-      </div>
-      <p class="footer-text">&copy; 2025 Cinema Ghar Index  |  Maintained by The_SabhyaPlayer  |  We Do not own any data  |  We Just Index it | All Credit goes to Original Rippers.</p>
-  </footer> <!-- End #page-footer -->
+            // Add listener for the load button
+            loadButton.addEventListener('click', loadVideo);
 
-  <!-- Main Error Display Area -->
-  <div id="main-error-area" aria-live="assertive"></div>
+            // Add listener for the custom audio track dropdown
+            audioTracksSelect.addEventListener('change', changeAudioTrack);
 
-</div> <!-- End #cinemaghar-container -->
+            console.log('Shaka Player initialized.');
+        }
 
-<script src="script.js" defer></script>
+        function loadVideo() {
+            const url = videoUrlInput.value.trim();
+            if (!url) {
+                showError("Please enter a video URL.");
+                return;
+            }
+            statusDiv.textContent = 'Loading...';
+            resetAudioSelector();
+
+            // Try to load the manifest.
+            player.load(url)
+                .then(() => {
+                    console.log(`Video loaded successfully: ${url}`);
+                    statusDiv.textContent = ''; // Clear status on success
+                    // `onTracksChanged` will be called automatically after load
+                })
+                .catch(onError); // onError needs to be defined below.
+        }
+
+        function onTracksChanged() {
+            console.log('Tracks changed event triggered.');
+            populateAudioSelector();
+        }
+
+        function populateAudioSelector() {
+            resetAudioSelector(); // Clear previous options
+
+            if (!player) return;
+
+            // Get available audio languages and roles
+            const audioLanguagesAndRoles = player.getAudioLanguagesAndRoles();
+            console.log('Available audio languages/roles:', audioLanguagesAndRoles);
+
+            if (audioLanguagesAndRoles.length <= 1) {
+                audioTracksSelect.disabled = true; // Disable if 0 or 1 track
+                return;
+            }
+
+            const activeAudioTrack = player.getVariantTracks().find(track => track.active && track.type === 'audio');
+            const currentLang = activeAudioTrack ? activeAudioTrack.language : player.getConfiguration().preferredAudioLanguage; // Get current language
+
+            audioLanguagesAndRoles.forEach(langRole => {
+                const option = document.createElement('option');
+                option.value = langRole.language;
+                // Create a user-friendly label (e.g., "English (main)", "Spanish")
+                option.textContent = `${shaka.ui.LanguageUtils.getLanguageName(langRole.language)}` + (langRole.role ? ` (${langRole.role})` : '');
+                option.selected = (langRole.language === currentLang); // Select the currently active one
+                audioTracksSelect.appendChild(option);
+            });
+
+            audioTracksSelect.disabled = false;
+        }
+
+        function changeAudioTrack() {
+            if (!player) return;
+
+            const selectedLanguage = audioTracksSelect.value;
+            if (selectedLanguage) {
+                console.log(`Changing audio language to: ${selectedLanguage}`);
+                player.selectAudioLanguage(selectedLanguage);
+                // Note: If roles are important, you might need more complex logic using selectVariantsByAudioRole
+            }
+        }
+
+        function resetAudioSelector() {
+             // Clear existing options except the placeholder
+            while (audioTracksSelect.options.length > 1) {
+                audioTracksSelect.remove(1);
+            }
+            audioTracksSelect.selectedIndex = 0; // Reset to placeholder
+            audioTracksSelect.disabled = true;
+        }
+
+        // Error handling functions
+        function onErrorEvent(event) {
+            // Extract the shaka.util.Error object from the event.
+            onError(event.detail);
+        }
+
+        function onError(error) {
+            // Log the error.
+            console.error('Shaka Player Error:', error.code, 'Object', error);
+            showError(`Error: ${error.message} (Code: ${error.code})`);
+            resetAudioSelector(); // Reset dropdown on error
+        }
+
+        function showError(message) {
+            statusDiv.textContent = message;
+        }
+
+        // Wait for the DOM to load and Shaka Player UI to be ready
+        document.addEventListener('shaka-ui-loaded', initApp);
+        // Fallback if shaka-ui-loaded isn't fired (e.g., deferred script)
+        // document.addEventListener('DOMContentLoaded', initApp); // Use this if 'shaka-ui-loaded' doesn't work reliably
+
+    </script>
+
 </body>
 </html>
